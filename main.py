@@ -10,30 +10,33 @@ def search_files():
     base_path = path_entry.get()
     keywords = [keyword.strip().lower() for keyword in keywords_entry.get().split(',')]
 
-    # Check if path is valid
     if not os.path.exists(base_path):
         messagebox.showerror("Error", "Invalid path")
         return
 
-    # Search for files
     matched_files = []
     for root, dirs, files in os.walk(base_path):
         for file in files:
             if all(keyword in file.lower() for keyword in keywords):
-                file_path = os.path.join(root, file)
-                mod_time = datetime.fromtimestamp(os.path.getmtime(file_path)).strftime('%Y-%m-%d %H:%M:%S')
-                matched_files.append([file, mod_time, root])
+                file_path = "\\\\?\\" + os.path.join(root, file)
+                try:
+                    mod_time = datetime.fromtimestamp(os.path.getmtime(file_path)).strftime('%Y-%m-%d %H:%M:%S')
+                    matched_files.append([file, mod_time, root])
+                except FileNotFoundError:
+                    print(f"File not found: {file_path}")
 
-    # Create DataFrame and generate Excel report
     if matched_files:
         df = pd.DataFrame(matched_files, columns=['File Name', 'Date Modified', 'Folder'])
+        # Get the directory of the script
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        report_path = os.path.join(script_dir, 'report.xlsx')
         try:
-            df.to_excel('report.xlsx', index=False)
-            messagebox.showinfo("Completed", "Your search is finished, report was generated successfully")
-        except PermissionError:
-            messagebox.showerror("Permission Error", "The report file is open in another program. Please close it and try again.")
-    else:
-        messagebox.showinfo("No Files Found", "No files match your search criteria")
+            df.to_excel(report_path, index=False)
+            print(f"Report generated at {report_path}")  # Debug print
+            messagebox.showinfo("Completed", f"Your search is finished, report was generated successfully at {report_path}")
+        except Exception as e:
+            print(f"Error generating report: {e}")  # Print any error encountered
+            messagebox.showerror("Error", "An error occurred while generating the report.")
 
 
 # Setting up the GUI
